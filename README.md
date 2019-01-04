@@ -12,9 +12,11 @@ I'm currently active at rewriting code to add more modular effects. Currently av
 
  * Rain
  * Snow
+ * Milky Way
  
 # What effects to expect?
 Whatever will come to my mind, however these are remaining to be rewritten:
 
   * Glitch/ dreamlike
-  * Milky Way
+  * Smoke
+

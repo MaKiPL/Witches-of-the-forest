@@ -27,6 +27,8 @@ namespace WitchesOfTheForest
         List<Rain> rainCollection;
         List<Snow> snowCollection;
 
+        List<object> classCollection;
+
         private class Rain
         {
             private int x = 0;
@@ -44,6 +46,49 @@ namespace WitchesOfTheForest
                 x-=8;
                 y+=8;
                 if (x == 0 || y > 480)
+                    bShouldDestroy = true;
+            }
+        }
+
+        private class Milk
+        {
+            public Texture2D snowTex;
+            private float x = 0;
+            private float y = 0;
+            public bool bShouldDestroy = false;
+            public Point getPosition => new Point((int)x, (int)y);
+            public int angle = 0;
+            private float directionX = 0;
+            private float directionY = 0;
+            private float r = 2.0f;
+            public Milk(int x, int y, float r = 2.0f)
+            {
+                this.x = x;
+                this.y = y;
+                this.r = r;
+                this.angle = random.Next(0, 359);
+                this.directionX = (float)(r * Math.Cos(MathHelper.ToRadians(angle)));
+                this.directionY = (float)(r * Math.Sin(MathHelper.ToRadians(angle)));
+                int randomJupiter = random.Next(1, 16);
+                this.x += directionX*randomJupiter;
+                this.y += directionY*randomJupiter;
+                byte[] bf = new byte[16];
+                snowTex = new Texture2D(graphics.GraphicsDevice, 2, 2, false, SurfaceFormat.Color);
+                for (int i = 0; i < 16; i += 4)
+                {
+                    bf[i] = 255;
+                    bf[i + 1] = 255;
+                    bf[i + 2] = 255;
+                    bf[i + 3] = (byte)random.Next(16, 240);
+                }
+                snowTex.SetData(bf);
+            }
+
+            public void Update()
+            {
+                x += directionX;
+                y += directionY;
+                if ((x < 0 || y > 480) || (x > 640 || y < 0))
                     bShouldDestroy = true;
             }
         }
@@ -89,6 +134,7 @@ namespace WitchesOfTheForest
         }
 
         private static Modules mod;
+        private static Modules lastMod;
         
         public Game1()
         {
@@ -119,14 +165,19 @@ namespace WitchesOfTheForest
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+
+
             mod = Keyboard.GetState().IsKeyDown(Keys.F1) ? Modules._0rain :
                 Keyboard.GetState().IsKeyDown(Keys.F2) ? Modules._1snow :
                 Keyboard.GetState().IsKeyDown(Keys.F3) ? Modules._2milk 
 
-
-
-
                 : mod;
+
+            if(lastMod!= mod)
+            {
+                classCollection = null;
+                lastMod = mod;
+            }
 
             switch (mod)
             {
@@ -135,6 +186,9 @@ namespace WitchesOfTheForest
                     break;
                 case Modules._1snow:
                     SnowUpdate();
+                    break;
+                case Modules._2milk:
+                    MilkUpdate();
                     break;
             }
 
@@ -151,9 +205,47 @@ namespace WitchesOfTheForest
                 case Modules._1snow:
                     SnowDraw();
                     break;
+                case Modules._2milk:
+                    MilkDraw();
+                    break;
             }
 
             base.Draw(gameTime);
+        }
+
+        private void MilkUpdate()
+        {
+            int starsCount = 500;
+            int half = 640 / 2;
+            int halfh = 360 / 2;
+            if (classCollection == null)
+            {
+                classCollection = new List<object>();
+
+                for (int i = 0; i < starsCount; i++)
+                    classCollection.Add(new Milk(half, halfh));
+            }
+            while (classCollection.Count != starsCount)
+                classCollection.Add(new Milk(half, halfh));
+            for (int i = 0; i<classCollection.Count; i++)
+            {
+                (classCollection[i] as Milk).Update();
+                if ((classCollection[i] as Milk).bShouldDestroy)
+                    classCollection.Remove(classCollection[i]);
+            }
+        }
+
+        private void MilkDraw()
+        {
+            if (classCollection == null)
+                return;
+            GraphicsDevice.Clear(Color.Black);
+            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp);
+            foreach (Milk milk in classCollection)
+            {
+                spriteBatch.Draw(milk.snowTex, new Rectangle(milk.getPosition, new Point(2, 2)), Color.White * (random.Next(0, 80) / 100.0f));
+            }
+            spriteBatch.End();
         }
 
         private void SnowUpdate()
