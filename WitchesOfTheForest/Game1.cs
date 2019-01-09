@@ -14,14 +14,19 @@ namespace WitchesOfTheForest
         SpriteBatch spriteBatch;
         Texture2D forest;
         Texture2D raind;
+        static Texture2D superCircle;
         static Random random;
         SpriteFont sf;
+        GameTime delta;
+
+        bool bShouldBlockInput = false;
 
         enum Modules
         {
             _0rain,
             _1snow,
-            _2milk
+            _2milk,
+            _3musicBeat
         }
 
         List<Rain> rainCollection;
@@ -133,6 +138,55 @@ namespace WitchesOfTheForest
             }
         }
 
+        private class Beat
+        {
+            Color color;
+            public bool bshouldDestroy = false;
+            int x;
+            int y;
+            int z;
+            float mass;
+            public Texture2D myTex;
+            public float life = 1.0f;
+
+            public Point GetPoint => new Point(x, y);
+            public Point GetZ => new Point(z, z);
+            public Beat(float fMass = 1.0f)
+            {
+                this.x = 640 / 2;
+                this.mass = fMass;
+                this.y = 360 / 2;
+                this.z = 0;
+                byte[] b = new byte[superCircle.Width*superCircle.Height*4];
+                int r = random.Next(0, 255); int g = random.Next(0, 255); int bb = random.Next(0, 255);
+                this.color = new Color((byte)r,(byte)g,(byte)bb);
+                superCircle.GetData(b);
+                myTex = new Texture2D(graphics.GraphicsDevice, 16, 16, false, SurfaceFormat.Color);
+                for(int i = 0; i<b.Length; i+=4)
+                {
+                    b[i] = this.color.R;
+                    b[i + 1] = this.color.G;
+                    b[i + 2] = this.color.B;
+                    //if(b[i+3] == 0xff)
+                    //{
+                    //    int spec = random.Next(0, 32);
+                    //    if (spec == 0)
+                    //        b[i + 3] = 0x00;
+                    //}
+                }
+                myTex.SetData(b);
+            }
+
+            public void Update(GameTime gameTime)
+            {
+                x-=2;
+                y-=2;
+                z+=4;
+                life -= gameTime.ElapsedGameTime.Milliseconds / (100.0f*this.mass);
+                bshouldDestroy = life < 0.0f;
+            }
+        }
+
         private static Modules mod;
         private static Modules lastMod;
         
@@ -154,6 +208,7 @@ namespace WitchesOfTheForest
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
             raind = Content.Load<Texture2D>("raind");
+            superCircle = Content.Load<Texture2D>("flare");
         }
 
         protected override void UnloadContent()
@@ -169,7 +224,8 @@ namespace WitchesOfTheForest
 
             mod = Keyboard.GetState().IsKeyDown(Keys.F1) ? Modules._0rain :
                 Keyboard.GetState().IsKeyDown(Keys.F2) ? Modules._1snow :
-                Keyboard.GetState().IsKeyDown(Keys.F3) ? Modules._2milk 
+                Keyboard.GetState().IsKeyDown(Keys.F3) ? Modules._2milk :
+                Keyboard.GetState().IsKeyDown(Keys.F4) ? Modules._3musicBeat
 
                 : mod;
 
@@ -190,11 +246,17 @@ namespace WitchesOfTheForest
                 case Modules._2milk:
                     MilkUpdate();
                     break;
+                case Modules._3musicBeat:
+                    BeatUpdate(gameTime);
+                    break;
             }
 
 
             base.Update(gameTime);
         }
+
+
+
         protected override void Draw(GameTime gameTime)
         {
             switch (mod)
@@ -208,9 +270,41 @@ namespace WitchesOfTheForest
                 case Modules._2milk:
                     MilkDraw();
                     break;
+                case Modules._3musicBeat:
+                    BeatDraw();
+                    break;
             }
 
             base.Draw(gameTime);
+        }
+
+        private void BeatUpdate(GameTime gameTime)
+        {
+            if (classCollection == null)
+                classCollection = new List<object>();
+            if(Keyboard.GetState().IsKeyDown(Keys.Space) && !bShouldBlockInput)
+                classCollection.Add(new Beat(random.Next(10,50) * 1.0f));
+            bShouldBlockInput = !Keyboard.GetState().IsKeyUp(Keys.Space);
+            for (int i = 0; i < classCollection.Count; i++)
+            {
+                (classCollection[i] as Beat).Update(gameTime);
+                if ((classCollection[i] as Beat).bshouldDestroy)
+                    classCollection.Remove(classCollection[i]);
+            }
+            }
+
+        private void BeatDraw()
+        {
+            if (classCollection == null)
+                return;
+
+            GraphicsDevice.Clear(Color.Black);
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.NonPremultiplied, SamplerState.LinearClamp);
+            foreach (Beat beat in classCollection)
+                spriteBatch.Draw(beat.myTex, new Rectangle(beat.GetPoint, beat.GetZ), Color.White * beat.life);
+            //spriteBatch.Draw(beat.myTex, new Rectangle(beat.GetPoint, new Point(320 + (320 - beat.GetPoint.X), 360 / 2 + (360 / 2 - beat.GetPoint.Y))), Color.White * beat.life);
+            spriteBatch.End();
+
         }
 
         private void MilkUpdate()
