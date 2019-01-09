@@ -13,6 +13,7 @@ I'm currently active at rewriting code to add more modular effects. Currently av
  * Rain
  * Snow
  * Milky Way
+ * Circle beat
  
 # What effects to expect?
 Whatever will come to my mind, however these are remaining to be rewritten:
