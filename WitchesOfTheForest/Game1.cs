@@ -26,7 +26,8 @@ namespace WitchesOfTheForest
             _0rain,
             _1snow,
             _2milk,
-            _3musicBeat
+            _3musicBeat,
+            _4smoke
         }
 
         List<Rain> rainCollection;
@@ -187,6 +188,40 @@ namespace WitchesOfTheForest
             }
         }
 
+        private class Smoke
+        {
+            public bool bshouldDestroy = false;
+            int x;
+            int y;
+            float mass = 1.0f;
+            public Texture2D myTex;
+            public float life = 1.0f;
+
+            public Point GetPoint => new Point(x, y);
+            public Smoke()
+            {
+                this.x = 640 / 2 - random.Next(-20,20);
+                this.y = 360 - 360 / 4;
+                this.mass = random.Next(1, 5) * 1f;
+                byte[] b = new byte[4*4*4];
+                myTex = new Texture2D(graphics.GraphicsDevice, 4, 4, false, SurfaceFormat.Color);
+                for (int i = 0; i < b.Length; i += 4)
+                {
+                    byte grey = (byte)random.Next(16, 255);
+                    b[i] = grey; b[i + 1] = grey; b[i + 2] = grey; b[i + 3] = (byte)random.Next(16, 32);
+                }
+                myTex.SetData(b);
+            }
+
+            public void Update(GameTime gameTime)
+            {
+                x -= random.Next(-10,10);
+                y -= random.Next(1,3);
+                life -= gameTime.ElapsedGameTime.Milliseconds / (1000.0f * mass);
+                bshouldDestroy = life < 0.0f;
+            }
+        }
+
         private static Modules mod;
         private static Modules lastMod;
         
@@ -225,7 +260,8 @@ namespace WitchesOfTheForest
             mod = Keyboard.GetState().IsKeyDown(Keys.F1) ? Modules._0rain :
                 Keyboard.GetState().IsKeyDown(Keys.F2) ? Modules._1snow :
                 Keyboard.GetState().IsKeyDown(Keys.F3) ? Modules._2milk :
-                Keyboard.GetState().IsKeyDown(Keys.F4) ? Modules._3musicBeat
+                Keyboard.GetState().IsKeyDown(Keys.F4) ? Modules._3musicBeat :
+                Keyboard.GetState().IsKeyDown(Keys.F5) ? Modules._4smoke
 
                 : mod;
 
@@ -249,6 +285,10 @@ namespace WitchesOfTheForest
                 case Modules._3musicBeat:
                     BeatUpdate(gameTime);
                     break;
+                case Modules._4smoke:
+                    SmokeUpdate(gameTime);
+                    break;
+                    
             }
 
 
@@ -273,10 +313,45 @@ namespace WitchesOfTheForest
                 case Modules._3musicBeat:
                     BeatDraw();
                     break;
+                case Modules._4smoke:
+                    SmokeDraw();
+                    break;
             }
 
             base.Draw(gameTime);
         }
+
+        private void SmokeUpdate(GameTime gameTime)
+        {
+            int smokeCount = 1000;
+            if (classCollection == null)
+            {
+                classCollection = new List<object>();
+            }
+            while(classCollection.Count() < smokeCount)
+                for (int i = 0; i < smokeCount; i++)
+                    classCollection.Add(new Smoke());
+            
+                for (int i = 0; i<classCollection.Count; i++)
+            {
+                (classCollection[i] as Smoke).Update(gameTime);
+                if ((classCollection[i] as Smoke).bshouldDestroy)
+                    classCollection.Remove(classCollection[i]);
+            }
+        }
+
+        private void SmokeDraw()
+        {
+            if (classCollection == null)
+                return;
+            GraphicsDevice.Clear(Color.Black);
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.NonPremultiplied, SamplerState.LinearClamp);
+            foreach (Smoke smoke in classCollection)
+                spriteBatch.Draw(smoke.myTex, new Rectangle(smoke.GetPoint, new Point(smoke.myTex.Width*4, smoke.myTex.Height*4)), Color.White * smoke.life);
+            spriteBatch.End();
+        }
+
+
 
         private void BeatUpdate(GameTime gameTime)
         {
