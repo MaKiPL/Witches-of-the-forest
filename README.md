@@ -1,7 +1,7 @@
 # Witches-of-the-forest
 Witches of the forest is a MonoGame free to use effects collection.
 
-*WARNING* - there's no much effects here. Come back soon
+![example gif](https://raw.githubusercontent.com/MaKiPL/Witches-of-the-forest/master/witches.gif)
 
 
 # What's this?
